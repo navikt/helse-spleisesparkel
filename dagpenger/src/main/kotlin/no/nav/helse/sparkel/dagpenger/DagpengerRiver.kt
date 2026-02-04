@@ -75,7 +75,7 @@ internal class DagpengerRiver(
                 sikkerlogg.info("Mottok svar fra /dagpenger/datadeling/v1/meldekort med følgende payload: $dagpengerMeldekortListeResponse")
                 packet["@løsning"] = mapOf(
                     behov to mapOf(
-                        "perioder" to dagpengerMeldekortListeResponse.map {
+                        "meldekortperioder" to dagpengerMeldekortListeResponse.map {
                             mapOf(
                                 "fom" to it.periode.fraOgMed,
                                 "tom" to it.periode.tilOgMed
