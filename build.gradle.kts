@@ -16,7 +16,7 @@ val kotliqueryVersion = "1.9.0"
 val postgresqlVersion = "42.7.7"
 val flywayCoreVersion = "11.5.0"
 val hikariCPVersion = "6.3.0"
-val jacksonVersion = "2.18.3"
+val jacksonVersion = "2.21.0"
 
 buildscript {
     repositories { mavenCentral() }
