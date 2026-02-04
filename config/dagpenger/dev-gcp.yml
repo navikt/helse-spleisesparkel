@@ -1,0 +1,21 @@
+kafkaPool: nav-dev
+replicas:
+  min: 1
+  max: 1
+limits:
+  cpu: 2000m
+azure:
+  enabled: true
+  tenant: trygdeetaten.no
+
+accessPolicy:
+  outbound:
+    rules:
+      - application: dp-datadeling
+        namespace: teamdagpenger
+        cluster: dev-gcp
+env:
+  - name: DAGPENGER_API_BASE_URL
+    value: http://dp-datadeling.teamdagpenger
+  - name: ACCESS_TOKEN_SCOPE
+    value: api://dev-gcp.teamdagpenger.dp-datadeling/.default
