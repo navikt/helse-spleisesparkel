@@ -20,7 +20,7 @@ val jacksonVersion = "2.18.3"
 
 buildscript {
     repositories { mavenCentral() }
-    dependencies { "classpath"(group = "com.fasterxml.jackson.core", name = "jackson-databind", version = "2.13.2.2") }
+    dependencies { "classpath"(group = "com.fasterxml.jackson.core", name = "jackson-databind", version = "2.21.0") }
 }
 
 val mapper = ObjectMapper()
