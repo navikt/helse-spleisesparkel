@@ -1,4 +1,4 @@
-rootProject.name = "sparkelapper"
+rootProject.name = "spleisesparkel"
 rootDir
     .listFiles()
     ?.filter { it.isDirectory && File(it, "build.gradle.kts").exists() }
