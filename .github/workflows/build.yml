@@ -114,7 +114,7 @@ jobs:
           echo "${{ steps.docker-build-push.outputs.image }}" > "${{ matrix.project }}_build_${{ steps.docker-build-push.outcome }}.txt"
       - name: laste opp build-fil
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           overwrite: true
           retention-days: 1
