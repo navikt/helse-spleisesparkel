@@ -6,6 +6,8 @@ on:
 jobs:
   generate_vars:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
       deployMatrix: ${{ steps.set-matrix.outputs.deployMatrix }}
