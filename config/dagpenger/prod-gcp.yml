@@ -1,0 +1,18 @@
+kafkaPool: nav-prod
+limits:
+  cpu: 2000m
+azure:
+  enabled: true
+  tenant: nav.no
+
+accessPolicy:
+  outbound:
+    rules:
+      - application: dp-datadeling
+        namespace: teamdagpenger
+        cluster: prod-gcp
+env:
+  - name: DAGPENGER_API_BASE_URL
+    value: http://dp-datadeling.teamdagpenger
+  - name: ACCESS_TOKEN_SCOPE
+    value: api://prod-gcp.teamdagpenger.dp-datadeling/.default
