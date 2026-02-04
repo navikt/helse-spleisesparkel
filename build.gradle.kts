@@ -1,5 +1,12 @@
 import com.fasterxml.jackson.databind.ObjectMapper
 
+val jacksonVersion = "2.21.0"
+
+buildscript {
+    repositories { mavenCentral() }
+    dependencies { classpath("com.fasterxml.jackson.core:jackson-databind:2.21.0") }
+}
+
 plugins {
     kotlin("jvm") version "2.3.0"
 }
@@ -9,13 +16,6 @@ val rapidsAndRiversVersion = "2026012807431769582626.d6f80c5a169d"
 val tbdLibsVersion = "2026.01.28-07.21-5436e475"
 val ktorVersion = "3.4.0"
 val wiremockVersion = "3.13.2"
-val jsonAssertVersion = "1.5.3"
-val jacksonVersion = "2.21.0"
-
-buildscript {
-    repositories { mavenCentral() }
-    dependencies { "classpath"(group = "com.fasterxml.jackson.core", name = "jackson-databind", version = "2.13.2.2") }
-}
 
 val mapper = ObjectMapper()
 
@@ -37,7 +37,7 @@ fun getDeployableProjects() =
     getBuildableProjects()
         .filter { project -> File("config", project.name).isDirectory }
 
-tasks.create("buildMatrix") {
+tasks.register("buildMatrix") {
     doLast {
         println(
             mapper.writeValueAsString(
@@ -48,7 +48,7 @@ tasks.create("buildMatrix") {
         )
     }
 }
-tasks.create("deployMatrix") {
+tasks.register("deployMatrix") {
     doLast {
         // map of cluster to list of apps
         val deployableProjects = getDeployableProjects().map { it.name }
@@ -138,10 +138,9 @@ allprojects {
 }
 
 subprojects {
-    ext.set("ktorVersion", ktorVersion)
-    ext.set("rapidsAndRiversVersion", rapidsAndRiversVersion)
-    ext.set("tbdLibsVersion", tbdLibsVersion)
-    ext.set("jsonAssertVersion", jsonAssertVersion)
+    extra["ktorVersion"] = ktorVersion
+    extra["rapidsAndRiversVersion"] = rapidsAndRiversVersion
+    extra["tbdLibsVersion"] = tbdLibsVersion
 
     dependencies {
         constraints {
@@ -152,7 +151,6 @@ subprojects {
 
         testImplementation("org.wiremock:wiremock:$wiremockVersion") {
             exclude(group = "junit")
-            exclude("com.github.jknack.handlebars.java")
         }
         testImplementation("io.ktor:ktor-client-mock-jvm:$ktorVersion")
     }
@@ -163,6 +161,11 @@ subprojects {
 
                 val mainClass = project.mainClass()
 
+                manifest {
+                    attributes["Main-Class"] = mainClass
+                    attributes["Class-Path"] = configurations.runtimeClasspath.get().joinToString(separator = " ") { it.name }
+                }
+
                 doLast {
                     val mainClassFound =
                         this.project.sourceSets.findByName("main")?.let {
@@ -170,14 +173,7 @@ subprojects {
                         } ?: false
 
                     if (!mainClassFound) throw RuntimeException("Kunne ikke finne main class: $mainClass")
-                }
 
-                manifest {
-                    attributes["Main-Class"] = mainClass
-                    attributes["Class-Path"] = configurations.runtimeClasspath.get().joinToString(separator = " ") { it.name }
-                }
-
-                doLast {
                     configurations.runtimeClasspath.get().forEach {
                         val file = File("${layout.buildDirectory.get()}/libs/${it.name}")
                         if (!file.exists()) {
