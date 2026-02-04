@@ -12,7 +12,7 @@ jobs:
       emptyMatrix: ${{ steps.set-matrix.outputs.emptyMatrix }}
       emptyDeployMatrix: ${{ steps.set-matrix.outputs.emptyDeployMatrix }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 2
       - name: cache gradle wrapper
@@ -73,7 +73,7 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJSON(needs.generate_vars.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
@@ -137,9 +137,9 @@ jobs:
           NAIS_VARS_FILE="config/${{ matrix.project }}/${{ matrix.cluster }}.yml"
           echo "NAIS_VARS_FILE=$NAIS_VARS_FILE" >> $GITHUB_ENV
       - name: Fetch sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: laste ned build-fil
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: "${{ matrix.project }}_build_result"
       - name: ser om vi har nais config og at bygget gikk bra

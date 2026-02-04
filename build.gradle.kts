@@ -7,16 +7,10 @@ plugins {
 val junitJupiterVersion = "6.0.1"
 val rapidsAndRiversVersion = "2026012807431769582626.d6f80c5a169d"
 val tbdLibsVersion = "2026.01.28-07.21-5436e475"
-val ktorVersion = "3.2.3"
-val mockkVersion = "1.13.17"
-val wiremockVersion = "3.9.2"
+val ktorVersion = "3.4.0"
+val wiremockVersion = "3.13.2"
 val jsonAssertVersion = "1.5.3"
-val avroVersion = "1.12.0"
-val kotliqueryVersion = "1.9.0"
-val postgresqlVersion = "42.7.7"
-val flywayCoreVersion = "11.5.0"
-val hikariCPVersion = "6.3.0"
-val jacksonVersion = "2.18.3"
+val jacksonVersion = "2.21.0"
 
 buildscript {
     repositories { mavenCentral() }
@@ -147,14 +141,7 @@ subprojects {
     ext.set("ktorVersion", ktorVersion)
     ext.set("rapidsAndRiversVersion", rapidsAndRiversVersion)
     ext.set("tbdLibsVersion", tbdLibsVersion)
-    ext.set("junitJupiterVersion", junitJupiterVersion)
-    ext.set("mockkVersion", mockkVersion)
     ext.set("jsonAssertVersion", jsonAssertVersion)
-    ext.set("avroVersion", avroVersion)
-    ext.set("postgresqlVersion", postgresqlVersion)
-    ext.set("flywayCoreVersion", flywayCoreVersion)
-    ext.set("hikariCPVersion", hikariCPVersion)
-    ext.set("kotliqueryVersion", kotliqueryVersion)
 
     dependencies {
         constraints {
@@ -163,7 +150,6 @@ subprojects {
             }
         }
 
-        testImplementation("io.mockk:mockk:$mockkVersion")
         testImplementation("org.wiremock:wiremock:$wiremockVersion") {
             exclude(group = "junit")
             exclude("com.github.jknack.handlebars.java")
