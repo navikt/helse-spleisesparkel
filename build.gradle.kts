@@ -8,7 +8,7 @@ buildscript {
 }
 
 plugins {
-    kotlin("jvm") version "2.3.0"
+    kotlin("jvm") version "2.3.10"
 }
 
 val junitJupiterVersion = "6.0.1"
