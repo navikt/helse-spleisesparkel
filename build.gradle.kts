@@ -4,7 +4,7 @@ val jacksonVersion = "2.21.0"
 
 buildscript {
     repositories { mavenCentral() }
-    dependencies { classpath("com.fasterxml.jackson.core:jackson-databind:2.21.0") }
+    dependencies { classpath("com.fasterxml.jackson.core:jackson-databind:2.21.1") }
 }
 
 plugins {
