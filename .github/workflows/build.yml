@@ -141,7 +141,7 @@ jobs:
       - name: Fetch sources
         uses: actions/checkout@v6
       - name: laste ned build-fil
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: "${{ matrix.project }}_build_result"
       - name: ser om vi har nais config og at bygget gikk bra
