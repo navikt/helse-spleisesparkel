@@ -62,6 +62,8 @@ jobs:
             echo "deployMatrix=$DEPLOY_MATRIX" >> $GITHUB_OUTPUT
             echo "emptyDeployMatrix=false" >> $GITHUB_OUTPUT
           fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build:
     needs: generate_vars
