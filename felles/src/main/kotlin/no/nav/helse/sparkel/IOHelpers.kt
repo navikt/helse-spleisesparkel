@@ -11,6 +11,23 @@ import kotlin.reflect.KClass
 
 private val log: Logger = LoggerFactory.getLogger("tjenestekall")
 
+/**
+ * Kjører [block] og forsøker på nytt dersom kallet feiler med en tillatt feiltype.
+ *
+ * Funksjonen prøver én gang per verdi i [retryIntervals]. Dersom et forsøk feiler med
+ * en feil som matcher en av [legalExceptions], eller en av dens underliggende årsaker
+ * innenfor [exceptionCausedByDepth], logges feilen og neste forsøk utsettes med det
+ * angitte intervallet. Feil som ikke regnes som retrybare kastes umiddelbart videre.
+ * Etter at alle ventetidene er brukt opp, gjøres ett siste forsøk uten ytterligere delay.
+ *
+ * @param callName navn på tjenestekallet som brukes i logging.
+ * @param legalExceptions feiltyper som skal regnes som retrybare.
+ * @param retryIntervals ventetid i millisekunder mellom hvert nytt forsøk.
+ * @param exceptionCausedByDepth hvor dypt i årsakskjeden det skal sjekkes etter retrybare feil.
+ * @param block suspenderende kode som skal kjøres.
+ * @return resultatet fra [block] dersom et forsøk lykkes.
+ * @throws Throwable dersom [block] feiler med en ikke-retrybar feil, eller alle forsøk feiler.
+ */
 suspend fun <T> retry(
     callName: String,
     vararg legalExceptions: KClass<out Throwable> = arrayOf(
@@ -42,11 +59,11 @@ private fun isCausedBy(
     legalExceptions: Array<out KClass<out Throwable>>
 ): Boolean {
     var current: Throwable = throwable
-    for (i in 0.until(depth)) {
+    repeat(depth) {
         if (legalExceptions.any { it.isInstance(current) }) {
             return true
         }
-        current = current.cause ?: break
+        current = current.cause ?: return@repeat
     }
     return false
 }
