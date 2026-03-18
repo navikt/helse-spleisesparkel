@@ -1,11 +1,4 @@
-import com.fasterxml.jackson.databind.ObjectMapper
-
 val jacksonVersion = "2.21.0"
-
-buildscript {
-    repositories { mavenCentral() }
-    dependencies { classpath("com.fasterxml.jackson.core:jackson-databind:2.21.0") }
-}
 
 plugins {
     kotlin("jvm") version "2.3.0"
@@ -16,82 +9,6 @@ val rapidsAndRiversVersion = "2026012807431769582626.d6f80c5a169d"
 val tbdLibsVersion = "2026.01.28-07.21-5436e475"
 val ktorVersion = "3.4.0"
 val wiremockVersion = "3.13.2"
-
-val mapper = ObjectMapper()
-
-fun getBuildableProjects(): List<Project> {
-    val changedFiles = System.getenv("CHANGED_FILES")?.split(",") ?: emptyList()
-    val commonChanges =
-        changedFiles.any {
-            it.startsWith("felles/") || it.contains("config/nais.yml") ||
-                it.startsWith("build.gradle.kts") ||
-                it == ".github/workflows/build.yml" ||
-                it == "Dockerfile" ||
-                it == "settings.gradle.kts"
-        }
-    if (changedFiles.isEmpty() || commonChanges) return subprojects.toList()
-    return subprojects.filter { project -> changedFiles.any { path -> path.contains("${project.name}/") } }
-}
-
-fun getDeployableProjects() =
-    getBuildableProjects()
-        .filter { project -> File("config", project.name).isDirectory }
-
-tasks.register("buildMatrix") {
-    doLast {
-        println(
-            mapper.writeValueAsString(
-                mapOf(
-                    "project" to getBuildableProjects().map { it.name },
-                ),
-            ),
-        )
-    }
-}
-tasks.register("deployMatrix") {
-    doLast {
-        // map of cluster to list of apps
-        val deployableProjects = getDeployableProjects().map { it.name }
-        val environments =
-            deployableProjects
-                .map { project ->
-                    project to (
-                        File("config", project)
-                            .listFiles()
-                            ?.filter { it.isFile && it.name.endsWith(".yml") }
-                            ?.filterNot { it.name.contains("aiven") }
-                            ?.map { it.name.removeSuffix(".yml") }
-                            ?: emptyList()
-                    )
-                }.toMap()
-
-        val clusters = environments.flatMap { it.value }.distinct()
-        val exclusions =
-            environments
-                .mapValues { (_, configs) ->
-                    clusters.filterNot { it in configs }
-                }
-                .filterValues { it.isNotEmpty() }
-                .flatMap { (app, clusters) ->
-                    clusters.map { cluster ->
-                        mapOf(
-                            "project" to app,
-                            "cluster" to cluster,
-                        )
-                    }
-                }
-
-        println(
-            mapper.writeValueAsString(
-                mapOf(
-                    "cluster" to clusters,
-                    "project" to deployableProjects,
-                    "exclude" to exclusions,
-                ),
-            ),
-        )
-    }
-}
 
 allprojects {
     group = "no.nav.helse.sparkel"

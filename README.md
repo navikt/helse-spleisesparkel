@@ -1,4 +1,4 @@
-# Sparkel [![Build](https://github.com/navikt/helse-sparkelapper/actions/workflows/build.yml/badge.svg)](https://github.com/navikt/helse-sparkelapper/actions/workflows/build.yml)
+# Sparkel [![Build aap](https://github.com/navikt/helse-sparkelapper/actions/workflows/build-aap.yml/badge.svg)](https://github.com/navikt/helse-sparkelapper/actions/workflows/build-aap.yml) [![Build dagpenger](https://github.com/navikt/helse-sparkelapper/actions/workflows/build-dagpenger.yml/badge.svg)](https://github.com/navikt/helse-sparkelapper/actions/workflows/build-dagpenger.yml) [![Build felles](https://github.com/navikt/helse-sparkelapper/actions/workflows/build-felles.yml/badge.svg)](https://github.com/navikt/helse-sparkelapper/actions/workflows/build-felles.yml)
 
 Mikrotjenester som svarer ut behov ved å hente data fra ulike registre.
 
@@ -11,14 +11,15 @@ Dette er for øvrig et skikkelig bra sted å skrive navnene på hver tjeneste og
 
 ## Legge til ny app
 
-Alle gradle-modulene bygges og releases automatisk.
-Ved hver pakke som blir lastet opp trigges en deployment workflow for den pakken.
+Bygg og deploy styres av egne GitHub workflows per modul.
+Moduler med deploy-konfigurasjon i `config/[app]/` deployes til klustrene som har en egen yml-fil.
 
 Navnet på appen blir prefikset med `sparkel-` i nais.yml, så navnet på modulen skal være uten.
 
 1. Gjør 'Legge til en ny gradle-modul'. Mappenavnet korresponderer med appnavnet
 2. Lag `config/[app]/[cluster].yml` for de klustrene appen skal deployes til.
-3. Push endringene
+3. Lag eller oppdater workflow i `.github/workflows/` for modulen.
+4. Push endringene
 
 ## Oppgradering av gradle wrapper
 
