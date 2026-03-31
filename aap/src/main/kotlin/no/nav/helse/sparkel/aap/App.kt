@@ -18,7 +18,7 @@ fun main() {
             }
         }
 
-        val aapClient = AapClient(
+        val aapClient = AapClientImpl(
             baseUrl = env.getValue("AAP_API_BASE_URL"),
             tokenClient = azureClient,
             httpClient = httpClient,

@@ -30,33 +30,8 @@ private val retryableExceptions = arrayOf(
     ServerResponseException::class,
 )
 
-class AapClient(
-    private val baseUrl: String,
-    private val tokenClient: AzureTokenProvider,
-    private val httpClient: HttpClient,
-    private val scope: String,
-) {
-    suspend fun hentMaksimum(personidentifikator: String, fom: LocalDate, tom: LocalDate, behovId: String): Result<AapResponse> {
-        val callId = UUID.randomUUID()
-        return retry("maksimum", legalExceptions = retryableExceptions) {
-            val response = httpClient.preparePost("$baseUrl/maksimum") {
-                expectSuccess = true
-                contentType(ContentType.Application.Json)
-                accept(ContentType.Application.Json)
-                val bearerToken = tokenClient.bearerToken(scope).getOrThrow()
-                bearerAuth(bearerToken.token)
-                setBody(mapOf(
-                    "personidentifikator" to personidentifikator,
-                    "fraOgMedDato" to fom.toString(),
-                    "tilOgMedDato" to tom.toString()
-                ))
-                header("nav-callid", "$callId")
-                header("x-correlation-id", behovId)
-            }.execute()
-
-            Result.success(response.body())
-        }
-    }
+interface AapClient {
+    suspend fun hentMaksimum(personidentifikator: String, fom: LocalDate, tom: LocalDate, behovId: String): Result<AapResponse>
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     data class AapResponse(
@@ -105,4 +80,33 @@ class AapClient(
         val annenReduksjon: Long,
         val timerArbeidet: Long,
     )
+}
+
+class AapClientImpl(
+    private val baseUrl: String,
+    private val tokenClient: AzureTokenProvider,
+    private val httpClient: HttpClient,
+    private val scope: String,
+) : AapClient {
+    override suspend fun hentMaksimum(personidentifikator: String, fom: LocalDate, tom: LocalDate, behovId: String): Result<AapClient.AapResponse> {
+        val callId = UUID.randomUUID()
+        return retry("maksimum", legalExceptions = retryableExceptions) {
+            val response = httpClient.preparePost("$baseUrl/maksimum") {
+                expectSuccess = true
+                contentType(ContentType.Application.Json)
+                accept(ContentType.Application.Json)
+                val bearerToken = tokenClient.bearerToken(scope).getOrThrow()
+                bearerAuth(bearerToken.token)
+                setBody(mapOf(
+                    "personidentifikator" to personidentifikator,
+                    "fraOgMedDato" to fom.toString(),
+                    "tilOgMedDato" to tom.toString()
+                ))
+                header("nav-callid", "$callId")
+                header("x-correlation-id", behovId)
+            }.execute()
+
+            Result.success(response.body())
+        }
+    }
 }

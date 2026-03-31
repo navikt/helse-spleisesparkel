@@ -79,7 +79,9 @@ internal class AapRiver(
                         "utbetalingsperioder" to
                             aapResponse.vedtak
                                 .flatMap { aapRettighet ->
-                                    aapRettighet.utbetaling.filter { it.periode.fraOgMedDato != null }
+                                    aapRettighet.utbetaling
+                                        .filter { it.periode.fraOgMedDato != null }
+                                        .filter { it.belop != 0L}
                                         .map { utbetaling ->
                                             val fom = LocalDate.parse(utbetaling.periode.fraOgMedDato!!)
                                             val tom = utbetaling.periode.tilOgMedDato?.let { LocalDate.parse(it) }?.takeIf { it >= fom } ?: LocalDate.now()

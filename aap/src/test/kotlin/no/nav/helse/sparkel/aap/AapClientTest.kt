@@ -50,7 +50,7 @@ internal class AapClientTest {
         wireMockServer.start()
         configureFor(create().port(wireMockServer.port()).build())
 
-        aapClient = AapClient(
+        aapClient = AapClientImpl(
             baseUrl = "http://localhost:${wireMockServer.port()}",
             tokenClient = azureTokenProvider,
             httpClient = HttpClient(CIO) {
