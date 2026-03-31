@@ -8,7 +8,6 @@ on:
       - dagpenger/**
       - felles/**
       - config/dagpenger/**
-      - config/nais.yml
       - Dockerfile
       - build.gradle.kts
       - settings.gradle.kts
@@ -77,19 +76,17 @@ jobs:
         id: deploy-files
         uses: andstor/file-existence-action@v3
         with:
-          files: config/nais.yml, config/dagpenger/dev-gcp.yml
+          files: config/dagpenger/dev-gcp.yml
       - name: deploy
         if: steps.deploy-files.outputs.files_exists == 'true'
         uses: nais/deploy/actions/deploy@v2
         env:
           CLUSTER: dev-gcp
-          RESOURCE: config/nais.yml
-          VAR: app=dagpenger
-          VARS: config/dagpenger/dev-gcp.yml
+          RESOURCE: config/dagpenger/dev-gcp.yml
           IMAGE: ${{ needs.build.outputs.image }}
 
   deploy-prod:
-    needs: build
+    needs: [build, deploy-dev]
     if: needs.build.outputs.has_app_jar == 'true'
     runs-on: ubuntu-latest
     permissions:
@@ -102,14 +99,12 @@ jobs:
         id: deploy-files
         uses: andstor/file-existence-action@v3
         with:
-          files: config/nais.yml, config/dagpenger/prod-gcp.yml
+          files: config/dagpenger/prod-gcp.yml
       - name: deploy
         if: steps.deploy-files.outputs.files_exists == 'true'
         uses: nais/deploy/actions/deploy@v2
         env:
           CLUSTER: prod-gcp
-          RESOURCE: config/nais.yml
-          VAR: app=dagpenger
-          VARS: config/dagpenger/prod-gcp.yml
+          RESOURCE: config/dagpenger/prod-gcp.yml
           IMAGE: ${{ needs.build.outputs.image }}
 
