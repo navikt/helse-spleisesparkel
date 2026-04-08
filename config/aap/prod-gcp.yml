@@ -33,7 +33,7 @@ spec:
       cpu: 50m
       memory: 320Mi
   replicas:
-    min: 2
+    min: 4
     max: 8
     cpuThresholdPercentage: 400
   strategy:
