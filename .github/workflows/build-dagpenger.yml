@@ -13,6 +13,9 @@ on:
       - settings.gradle.kts
       - gradle.properties
       - gradle/**
+  schedule:
+    - cron: '0 9 * * 3'
+      timezone: 'Europe/Oslo'
   workflow_dispatch:
 
 jobs:
