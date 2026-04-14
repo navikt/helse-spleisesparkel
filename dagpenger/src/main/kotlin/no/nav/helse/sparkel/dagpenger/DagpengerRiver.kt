@@ -66,19 +66,19 @@ internal class DagpengerRiver(
         val fom = packet["$behov.periodeFom"].asLocalDate()
         val tom = packet["$behov.periodeTom"].asLocalDate()
 
-        val jsonDagpengerMeldekort = runBlocking {
-            dagpengerClient.hentMeldekort(fødselsnummer, fom, tom, behovId)
+        val jsonDagpengerBeregninger = runBlocking {
+            dagpengerClient.hentBeregninger(fødselsnummer, fom, tom, behovId)
         }
 
-        jsonDagpengerMeldekort.fold(
-            onSuccess = { dagpengerMeldekortListeResponse: List<DagpengerClient.DagpengerMeldekortResponse> ->
-                sikkerlogg.info("Mottok svar fra /dagpenger/datadeling/v1/meldekort med følgende payload: $dagpengerMeldekortListeResponse")
+        jsonDagpengerBeregninger.fold(
+            onSuccess = { dagpengerBeregningListeResponse: List<DagpengerClient.DagpengerBeregningResponse> ->
+                sikkerlogg.info("Mottok svar fra /dagpenger/datadeling/v1/beregninger med følgende payload: $dagpengerBeregningListeResponse")
                 packet["@løsning"] = mapOf(
                     behov to mapOf(
-                        "meldekortperioder" to dagpengerMeldekortListeResponse.map {
+                        "meldekortperioder" to dagpengerBeregningListeResponse.map {
                             mapOf(
-                                "fom" to it.periode.fraOgMed,
-                                "tom" to it.periode.tilOgMed
+                                "fom" to it.fraOgMed,
+                                "tom" to it.tilOgMed
                             )
                         }
                     )
@@ -93,7 +93,7 @@ internal class DagpengerRiver(
                 )
             },
             onFailure = { t: Throwable ->
-                "Fikk feil ved oppslag mot /dagpenger/datadeling/v1/meldekort".also { message ->
+                "Fikk feil ved oppslag mot /dagpenger/datadeling/v1/beregninger".also { message ->
                     log.error("$message, se sikkerlogg for detaljer")
                     sikkerlogg.error("$message: {}", t, t)
                 }

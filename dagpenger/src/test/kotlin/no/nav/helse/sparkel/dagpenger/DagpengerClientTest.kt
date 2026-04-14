@@ -42,7 +42,7 @@ internal class DagpengerClientTest {
         override fun onBehalfOfToken(scope: String, token: String) = bearerToken(scope)
     }
 
-    private val endpoint = "/dagpenger/datadeling/v1/meldekort"
+    private val endpoint = "/dagpenger/datadeling/v1/beregninger"
 
     @BeforeEach
     fun setup() {
@@ -68,9 +68,9 @@ internal class DagpengerClientTest {
     }
 
     @Test
-    fun `skal sende riktig request til meldekort endpoint`() {
+    fun `skal sende riktig request til beregninger endpoint`() {
         stubFor(
-            post(endpoint).willReturn(
+            post(urlEqualTo(endpoint)).willReturn(
                 okJson(jacksonObjectMapper().readTree(responseJson).toString())
             )
         )
@@ -80,7 +80,7 @@ internal class DagpengerClientTest {
         val tom = LocalDate.of(2025, 1, 14)
 
         val respons = runBlocking {
-            dagpengerClient.hentMeldekort(personidentifikator, fom, tom, UUID.randomUUID().toString())
+            dagpengerClient.hentBeregninger(personidentifikator, fom, tom, UUID.randomUUID().toString())
         }
 
         assertTrue(respons.isSuccess)
@@ -102,39 +102,39 @@ internal class DagpengerClientTest {
     @Test
     fun `skal parse response fra API korrekt`() {
         stubFor(
-            post(endpoint).willReturn(
+            post(urlEqualTo(endpoint)).willReturn(
                 okJson(jacksonObjectMapper().readTree(responseJson).toString())
             )
         )
 
         val respons = runBlocking {
-            dagpengerClient.hentMeldekort("12345678910", LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 14), UUID.randomUUID().toString())
+            dagpengerClient.hentBeregninger("12345678910", LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 14), UUID.randomUUID().toString())
         }
 
         assertTrue(respons.isSuccess)
         val result = respons.getOrNull()
         assertEquals(1, result?.size)
-        assertEquals("2025-01-01", result?.first()?.periode?.fraOgMed)
-        assertEquals("2025-01-14", result?.first()?.periode?.tilOgMed)
-        assertEquals(DagpengerClient.MeldekortStatus.Innsendt, result?.first()?.status)
+        assertEquals("2025-01-01", result?.first()?.fraOgMed)
+        assertEquals("2025-01-14", result?.first()?.tilOgMed)
+        assertEquals(5000, result?.first()?.utbetaltBeløp)
     }
 
     @Test
     fun `skal håndtere retry ved feil og deretter suksess`() {
         val scenario = "Feiler først, så ok"
         stubFor(
-            post(endpoint).inScenario(scenario).willReturn(
+            post(urlEqualTo(endpoint)).inScenario(scenario).willReturn(
                 aResponse().withStatus(500).withBody("Internal Server Error")
             ).willSetStateTo("har feilet")
         )
         stubFor(
-            post(endpoint).inScenario(scenario).whenScenarioStateIs("har feilet").willReturn(
+            post(urlEqualTo(endpoint)).inScenario(scenario).whenScenarioStateIs("har feilet").willReturn(
                 okJson(jacksonObjectMapper().readTree(responseJson).toString())
             )
         )
 
         val respons = runBlocking {
-            dagpengerClient.hentMeldekort("12345678910", LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 14), UUID.randomUUID().toString())
+            dagpengerClient.hentBeregninger("12345678910", LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 14), UUID.randomUUID().toString())
         }
 
         assertTrue(respons.isSuccess)
@@ -144,13 +144,13 @@ internal class DagpengerClientTest {
     @Test
     fun `skal sende med riktige headers`() {
         stubFor(
-            post(endpoint).willReturn(
+            post(urlEqualTo(endpoint)).willReturn(
                 okJson(jacksonObjectMapper().readTree(responseJson).toString())
             )
         )
         val behovId = UUID.randomUUID().toString()
         runBlocking {
-            dagpengerClient.hentMeldekort("12345678910", LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 14), behovId)
+            dagpengerClient.hentBeregninger("12345678910", LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 14), behovId)
         }
 
         verify(
@@ -165,7 +165,7 @@ internal class DagpengerClientTest {
     @Test
     fun `skal håndtere forskjellige datoer korrekt`() {
         stubFor(
-            post(endpoint).willReturn(
+            post(urlEqualTo(endpoint)).willReturn(
                 okJson(jacksonObjectMapper().readTree(responseJson).toString())
             )
         )
@@ -175,7 +175,7 @@ internal class DagpengerClientTest {
         val tom = LocalDate.of(2024, 3, 14)
 
         val respons = runBlocking {
-            dagpengerClient.hentMeldekort(personidentifikator, fom, tom, UUID.randomUUID().toString())
+            dagpengerClient.hentBeregninger(personidentifikator, fom, tom, UUID.randomUUID().toString())
         }
 
         assertTrue(respons.isSuccess)
@@ -195,58 +195,58 @@ internal class DagpengerClientTest {
     }
 
     @Test
+    fun `skal ignorere beregninger med utbetalt beløp lik null`() {
+        stubFor(
+            post(urlEqualTo(endpoint)).willReturn(
+                okJson(jacksonObjectMapper().readTree(responseJsonMed0UtbetaltBeløp).toString())
+            )
+        )
+
+        val respons = runBlocking {
+            dagpengerClient.hentBeregninger("12345678910", LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 31), UUID.randomUUID().toString())
+        }
+
+        assertTrue(respons.isSuccess)
+        val result = respons.getOrNull()
+        assertEquals(1, result?.size)
+        assertEquals("2025-01-01", result?.first()?.fraOgMed)
+        assertEquals("2025-01-14", result?.first()?.tilOgMed)
+        assertEquals(5000, result?.first()?.utbetaltBeløp)
+    }
+
+    @Test
     fun parseResponse() {
         val objectmapper = jacksonObjectMapper()
-        objectmapper.readValue<List<DagpengerClient.DagpengerMeldekortResponse>>(responseJson)
+        objectmapper.readValue<List<DagpengerClient.DagpengerBeregningResponse>>(responseJson)
     }
 }
 
 const val responseJson = """[{
-    "id": "01JKT9EFQQ1W2V3X4Y5Z6A7B8C",
-    "ident": "12345678910",
-    "status": "Innsendt",
-    "type": "Ordinaert",
-    "periode": {
-        "fraOgMed": "2025-01-01",
-        "tilOgMed": "2025-01-14"
-    },
-    "dager": [
-        {
-            "dato": "2025-01-01",
-            "aktiviteter": [
-                {
-                    "id": "550e8400-e29b-41d4-a716-446655440000",
-                    "type": "Arbeid",
-                    "timer": "7.5"
-                }
-            ],
-            "dagIndex": 0
-        },
-        {
-            "dato": "2025-01-02",
-            "aktiviteter": [
-                {
-                    "id": "550e8400-e29b-41d4-a716-446655440001",
-                    "type": "Syk",
-                    "timer": null
-                }
-            ],
-            "dagIndex": 1
-        }
-    ],
-    "kanSendes": false,
-    "kanEndres": false,
-    "kanSendesFra": "2025-01-15T00:00:00",
-    "sisteFristForTrekk": "2025-01-28T00:00:00",
-    "opprettetAv": "Dagpenger",
-    "originalMeldekortId": null,
-    "begrunnelse": null,
-    "kilde": {
-        "rolle": "Bruker",
-        "ident": "12345678910"
-    },
-    "innsendtTidspunkt": "2025-01-15T10:30:00",
-    "registrertArbeidssoker": true,
-    "meldedato": "2025-01-15"
+    "fraOgMed": "2025-01-01",
+    "tilOgMed": "2025-01-14",
+    "sats": 1000,
+    "utbetaltBeløp": 5000,
+    "gjenstendeDager": 50,
+    "kilde": "ARENA"
 }]
+"""
+
+const val responseJsonMed0UtbetaltBeløp = """[
+    {
+        "fraOgMed": "2025-01-01",
+        "tilOgMed": "2025-01-14",
+        "sats": 1000,
+        "utbetaltBeløp": 5000,
+        "gjenstendeDager": 50,
+        "kilde": "ARENA"
+    },
+    {
+        "fraOgMed": "2025-01-15",
+        "tilOgMed": "2025-01-31",
+        "sats": 1000,
+        "utbetaltBeløp": 0,
+        "gjenstendeDager": 50,
+        "kilde": "DP_SAK"
+    }
+]
 """
