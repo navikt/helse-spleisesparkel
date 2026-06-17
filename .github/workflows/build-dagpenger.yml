@@ -30,7 +30,7 @@ jobs:
       has_app_jar: ${{ steps.app_jar.outputs.files_exists }}
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-java@v5
+      - uses: actions/setup-java@v5.2.0
         with:
           distribution: temurin
           java-version: 21
