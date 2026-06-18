@@ -29,7 +29,7 @@ jobs:
       image: ${{ steps.docker-build-push.outputs.image }}
       has_app_jar: ${{ steps.app_jar.outputs.files_exists }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -74,7 +74,7 @@ jobs:
       id-token: write
     steps:
       - name: Fetch sources
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.0.3
       - name: Ensure deploy files exist
         id: deploy-files
         uses: andstor/file-existence-action@v3
@@ -97,7 +97,7 @@ jobs:
       id-token: write
     steps:
       - name: Fetch sources
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.0.3
       - name: Ensure deploy files exist
         id: deploy-files
         uses: andstor/file-existence-action@v3
