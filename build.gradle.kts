@@ -1,4 +1,4 @@
-val jacksonVersion = "2.21.0"
+val jacksonVersion = "2.22.1"
 
 plugins {
     kotlin("jvm") version "2.3.0"
