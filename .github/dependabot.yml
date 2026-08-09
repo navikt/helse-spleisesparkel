@@ -10,16 +10,6 @@ updates:
     cooldown:
       default-days: 7
 
-  # Maintain dependencies for docker
-  - package-ecosystem: "docker"
-    directory: "/"
-    commit-message:
-      prefix: "⬆️ "
-    schedule:
-      interval: "daily"
-    cooldown:
-      default-days: 7
-
   # Maintain dependencies for gradle
   - package-ecosystem: "gradle"
     directory: "/"
@@ -29,4 +19,6 @@ updates:
       interval: "daily"
     cooldown:
       default-days: 7
-
+      exclude:
+        - "no.nav.helse.sas.*"
+        - "com.github.navikt.tbd-libs:*"

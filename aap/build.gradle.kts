@@ -1,13 +1,20 @@
-val ktorVersion: String by project
-val tbdLibsVersion: String by project
+plugins {
+    id("no.nav.helse.sas.sas-deployable")
+}
+
+sasDeployable {
+    mainClass = "no.nav.helse.sparkel.aap.AppKt"
+    imageName = "helse-spleisesparkel-aap"
+}
 
 dependencies {
-    implementation("com.github.navikt.tbd-libs:azure-token-client-default:$tbdLibsVersion")
-    implementation("com.github.navikt.tbd-libs:retry:$tbdLibsVersion")
-    implementation("io.ktor:ktor-client-cio:$ktorVersion")
-    implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
-    implementation("io.ktor:ktor-serialization-jackson:$ktorVersion")
+    implementation(libs.tbd.libs.azure)
+    implementation(libs.tbd.libs.retry)
+    implementation(libs.bundles.ktor.client)
     implementation(project(":felles"))
 
-    testImplementation("com.github.navikt.tbd-libs:rapids-and-rivers-test:$tbdLibsVersion")
+    testImplementation(libs.tbd.libs.rapids.and.rivers.test)
+    testImplementation(libs.wiremock) {
+        exclude(group = "junit")
+    }
 }

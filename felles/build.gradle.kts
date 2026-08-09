@@ -1,5 +1,7 @@
-val rapidsAndRiversVersion: String by project
+plugins {
+    id("no.nav.helse.sas.sas-kotlin")
+}
 
 dependencies {
-    api("com.github.navikt:rapids-and-rivers:$rapidsAndRiversVersion")
+    api(libs.rapids.and.rivers)
 }
