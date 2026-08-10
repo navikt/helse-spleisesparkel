@@ -1,7 +1,5 @@
 package no.nav.helse.sparkel.aap
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import com.github.navikt.tbd_libs.azure.AzureToken
 import com.github.navikt.tbd_libs.azure.AzureTokenProvider
 import com.github.navikt.tbd_libs.result_object.Result
@@ -20,27 +18,32 @@ import com.github.tomakehurst.wiremock.core.WireMockConfiguration
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.serialization.jackson.jackson
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.util.UUID
+import io.ktor.serialization.jackson3.jackson
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import tools.jackson.module.kotlin.jacksonObjectMapper
+import tools.jackson.module.kotlin.readValue
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.util.UUID
 
 internal class AapClientTest {
     private lateinit var wireMockServer: WireMockServer
     private lateinit var aapClient: AapClient
 
-    private val azureTokenProvider = object : AzureTokenProvider {
-        override fun bearerToken(scope: String) =
-            Result.Ok(AzureToken("test-bearer-token", LocalDateTime.now().plusHours(1)))
+    private val azureTokenProvider =
+        object : AzureTokenProvider {
+            override fun bearerToken(scope: String) = Result.Ok(AzureToken("test-bearer-token", LocalDateTime.now().plusHours(1)))
 
-        override fun onBehalfOfToken(scope: String, token: String) = bearerToken(scope)
-    }
+            override fun onBehalfOfToken(
+                scope: String,
+                token: String,
+            ) = bearerToken(scope)
+        }
 
     private val endpoint = "/maksimum"
 
@@ -50,16 +53,18 @@ internal class AapClientTest {
         wireMockServer.start()
         configureFor(create().port(wireMockServer.port()).build())
 
-        aapClient = AapClientImpl(
-            baseUrl = "http://localhost:${wireMockServer.port()}",
-            tokenClient = azureTokenProvider,
-            httpClient = HttpClient(CIO) {
-                install(ContentNegotiation) {
-                    jackson()
-                }
-            },
-            scope = "test-scope"
-        )
+        aapClient =
+            AapClientImpl(
+                baseUrl = "http://localhost:${wireMockServer.port()}",
+                tokenClient = azureTokenProvider,
+                httpClient =
+                    HttpClient(CIO) {
+                        install(ContentNegotiation) {
+                            jackson()
+                        }
+                    },
+                scope = "test-scope",
+            )
     }
 
     @AfterEach
@@ -71,31 +76,32 @@ internal class AapClientTest {
     fun `skal sende riktig request til maksimumUtenUtbetaling endpoint`() {
         stubFor(
             post(endpoint).willReturn(
-                okJson(jacksonObjectMapper().readTree(responseJson).toString())
-            )
+                okJson(jacksonObjectMapper().readTree(responseJson).toString()),
+            ),
         )
 
         val personidentifikator = "12345678910"
         val fom = LocalDate.of(2025, 1, 1)
         val tom = LocalDate.of(2025, 12, 31)
 
-        val respons = runBlocking {
-            aapClient.hentMaksimum(personidentifikator, fom, tom, UUID.randomUUID().toString())
-        }
+        val respons =
+            runBlocking {
+                aapClient.hentMaksimum(personidentifikator, fom, tom, UUID.randomUUID().toString())
+            }
 
         assertTrue(respons.isSuccess)
 
         val expectedRequestBody = """
             {
                 "personidentifikator": "$personidentifikator",
-                "fraOgMedDato": "${fom}",
-                "tilOgMedDato": "${tom}"
+                "fraOgMedDato": "$fom",
+                "tilOgMedDato": "$tom"
             }
         """
 
         verify(
             postRequestedFor(urlEqualTo(endpoint))
-                .withRequestBody(equalToJson(expectedRequestBody))
+                .withRequestBody(equalToJson(expectedRequestBody)),
         )
     }
 
@@ -103,37 +109,55 @@ internal class AapClientTest {
     fun `skal parse response fra API korrekt`() {
         stubFor(
             post(endpoint).willReturn(
-                okJson(jacksonObjectMapper().readTree(responseJson).toString())
-            )
+                okJson(jacksonObjectMapper().readTree(responseJson).toString()),
+            ),
         )
 
-        val respons = runBlocking {
-            aapClient.hentMaksimum("12345678910", LocalDate.of(1990, 1, 1), LocalDate.of(2025, 1, 1), UUID.randomUUID().toString())
-        }
+        val respons =
+            runBlocking {
+                aapClient.hentMaksimum("12345678910", LocalDate.of(1990, 1, 1), LocalDate.of(2025, 1, 1), UUID.randomUUID().toString())
+            }
 
         assertTrue(respons.isSuccess)
         val result = respons.getOrNull()
-        assertEquals("2025-04-01", result?.vedtak?.first()?.periode?.fraOgMedDato)
-        assertEquals("2025-06-01", result?.vedtak?.first()?.periode?.tilOgMedDato)
+        assertEquals(
+            "2025-04-01",
+            result
+                ?.vedtak
+                ?.first()
+                ?.periode
+                ?.fraOgMedDato,
+        )
+        assertEquals(
+            "2025-06-01",
+            result
+                ?.vedtak
+                ?.first()
+                ?.periode
+                ?.tilOgMedDato,
+        )
     }
 
     @Test
     fun `skal håndtere retry ved feil og deretter suksess`() {
         val scenario = "Feiler først, så ok"
         stubFor(
-            post(endpoint).inScenario(scenario).willReturn(
-                aResponse().withStatus(500).withBody("Internal Server Error")
-            ).willSetStateTo("har feilet")
+            post(endpoint)
+                .inScenario(scenario)
+                .willReturn(
+                    aResponse().withStatus(500).withBody("Internal Server Error"),
+                ).willSetStateTo("har feilet"),
         )
         stubFor(
             post(endpoint).inScenario(scenario).whenScenarioStateIs("har feilet").willReturn(
-                okJson(jacksonObjectMapper().readTree(responseJson).toString())
-            )
+                okJson(jacksonObjectMapper().readTree(responseJson).toString()),
+            ),
         )
 
-        val respons = runBlocking {
-            aapClient.hentMaksimum("12345678910", LocalDate.of(1990, 1, 1), LocalDate.of(2025, 1, 1), UUID.randomUUID().toString())
-        }
+        val respons =
+            runBlocking {
+                aapClient.hentMaksimum("12345678910", LocalDate.of(1990, 1, 1), LocalDate.of(2025, 1, 1), UUID.randomUUID().toString())
+            }
 
         assertTrue(respons.isSuccess)
         verify(2, postRequestedFor(urlEqualTo(endpoint)))
@@ -143,8 +167,8 @@ internal class AapClientTest {
     fun `skal sende med riktige headers`() {
         stubFor(
             post(endpoint).willReturn(
-                okJson(jacksonObjectMapper().readTree(responseJson).toString())
-            )
+                okJson(jacksonObjectMapper().readTree(responseJson).toString()),
+            ),
         )
         val behovId = UUID.randomUUID().toString()
         runBlocking {
@@ -153,10 +177,23 @@ internal class AapClientTest {
 
         verify(
             postRequestedFor(urlEqualTo(endpoint))
-                .withHeader("Content-Type", com.github.tomakehurst.wiremock.client.WireMock.equalTo("application/json"))
-                .withHeader("Accept", com.github.tomakehurst.wiremock.client.WireMock.equalTo("application/json"))
-                .withHeader("Authorization", com.github.tomakehurst.wiremock.client.WireMock.equalTo("Bearer test-bearer-token"))
-                .withHeader("x-correlation-id", com.github.tomakehurst.wiremock.client.WireMock.equalTo(behovId))
+                .withHeader(
+                    "Content-Type",
+                    com.github.tomakehurst.wiremock.client.WireMock
+                        .equalTo("application/json"),
+                ).withHeader(
+                    "Accept",
+                    com.github.tomakehurst.wiremock.client.WireMock
+                        .equalTo("application/json"),
+                ).withHeader(
+                    "Authorization",
+                    com.github.tomakehurst.wiremock.client.WireMock
+                        .equalTo("Bearer test-bearer-token"),
+                ).withHeader(
+                    "x-correlation-id",
+                    com.github.tomakehurst.wiremock.client.WireMock
+                        .equalTo(behovId),
+                ),
         )
     }
 
@@ -164,17 +201,18 @@ internal class AapClientTest {
     fun `skal håndtere forskjellige datoer korrekt`() {
         stubFor(
             post(endpoint).willReturn(
-                okJson(jacksonObjectMapper().readTree(responseJson).toString())
-            )
+                okJson(jacksonObjectMapper().readTree(responseJson).toString()),
+            ),
         )
 
         val personidentifikator = "98765432109"
         val fom = LocalDate.of(2024, 3, 1)
         val tom = LocalDate.of(2024, 9, 30)
 
-        val respons = runBlocking {
-            aapClient.hentMaksimum(personidentifikator, fom, tom, UUID.randomUUID().toString())
-        }
+        val respons =
+            runBlocking {
+                aapClient.hentMaksimum(personidentifikator, fom, tom, UUID.randomUUID().toString())
+            }
 
         assertTrue(respons.isSuccess)
 
@@ -188,7 +226,7 @@ internal class AapClientTest {
 
         verify(
             postRequestedFor(urlEqualTo(endpoint))
-                .withRequestBody(equalToJson(expectedRequestBody))
+                .withRequestBody(equalToJson(expectedRequestBody)),
         )
     }
 
@@ -237,4 +275,3 @@ const val responseJson = """{
             }]
         }
         """
-

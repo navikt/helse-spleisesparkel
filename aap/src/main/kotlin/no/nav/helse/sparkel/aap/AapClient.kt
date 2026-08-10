@@ -14,28 +14,34 @@ import io.ktor.client.request.preparePost
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import no.nav.helse.sparkel.retry
 import java.io.IOException
 import java.net.SocketTimeoutException
 import java.time.LocalDate
 import java.util.UUID
 import javax.net.ssl.SSLHandshakeException
-import kotlinx.coroutines.channels.ClosedReceiveChannelException
 
-private val retryableExceptions = arrayOf(
-    IOException::class,
-    ClosedReceiveChannelException::class,
-    SSLHandshakeException::class,
-    SocketTimeoutException::class,
-    ServerResponseException::class,
-)
+private val retryableExceptions =
+    arrayOf(
+        IOException::class,
+        ClosedReceiveChannelException::class,
+        SSLHandshakeException::class,
+        SocketTimeoutException::class,
+        ServerResponseException::class,
+    )
 
 interface AapClient {
-    suspend fun hentMaksimum(personidentifikator: String, fom: LocalDate, tom: LocalDate, behovId: String): Result<AapResponse>
+    suspend fun hentMaksimum(
+        personidentifikator: String,
+        fom: LocalDate,
+        tom: LocalDate,
+        behovId: String,
+    ): Result<AapResponse>
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     data class AapResponse(
-        val vedtak: List<AapRettighet>
+        val vedtak: List<AapRettighet>,
     )
 
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -88,23 +94,32 @@ class AapClientImpl(
     private val httpClient: HttpClient,
     private val scope: String,
 ) : AapClient {
-    override suspend fun hentMaksimum(personidentifikator: String, fom: LocalDate, tom: LocalDate, behovId: String): Result<AapClient.AapResponse> {
+    override suspend fun hentMaksimum(
+        personidentifikator: String,
+        fom: LocalDate,
+        tom: LocalDate,
+        behovId: String,
+    ): Result<AapClient.AapResponse> {
         val callId = UUID.randomUUID()
         return retry("maksimum", legalExceptions = retryableExceptions) {
-            val response = httpClient.preparePost("$baseUrl/maksimum") {
-                expectSuccess = true
-                contentType(ContentType.Application.Json)
-                accept(ContentType.Application.Json)
-                val bearerToken = tokenClient.bearerToken(scope).getOrThrow()
-                bearerAuth(bearerToken.token)
-                setBody(mapOf(
-                    "personidentifikator" to personidentifikator,
-                    "fraOgMedDato" to fom.toString(),
-                    "tilOgMedDato" to tom.toString()
-                ))
-                header("nav-callid", "$callId")
-                header("x-correlation-id", behovId)
-            }.execute()
+            val response =
+                httpClient
+                    .preparePost("$baseUrl/maksimum") {
+                        expectSuccess = true
+                        contentType(ContentType.Application.Json)
+                        accept(ContentType.Application.Json)
+                        val bearerToken = tokenClient.bearerToken(scope).getOrThrow()
+                        bearerAuth(bearerToken.token)
+                        setBody(
+                            mapOf(
+                                "personidentifikator" to personidentifikator,
+                                "fraOgMedDato" to fom.toString(),
+                                "tilOgMedDato" to tom.toString(),
+                            ),
+                        )
+                        header("nav-callid", "$callId")
+                        header("x-correlation-id", behovId)
+                    }.execute()
 
             Result.success(response.body())
         }

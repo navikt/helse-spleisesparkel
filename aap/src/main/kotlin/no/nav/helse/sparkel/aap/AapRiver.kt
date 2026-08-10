@@ -1,6 +1,5 @@
 package no.nav.helse.sparkel.aap
 
-import com.fasterxml.jackson.databind.JsonNode
 import com.github.navikt.tbd_libs.rapids_and_rivers.JsonMessage
 import com.github.navikt.tbd_libs.rapids_and_rivers.River
 import com.github.navikt.tbd_libs.rapids_and_rivers.asLocalDate
@@ -9,48 +8,58 @@ import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageMetadata
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageProblems
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import io.micrometer.core.instrument.MeterRegistry
-import java.time.LocalDate
 import kotlinx.coroutines.runBlocking
 import net.logstash.logback.argument.StructuredArguments.keyValue
 import net.logstash.logback.argument.StructuredArguments.kv
 import org.slf4j.LoggerFactory
 import org.slf4j.MDC
+import tools.jackson.databind.JsonNode
+import java.time.LocalDate
 
 internal class AapRiver(
     rapidsConnection: RapidsConnection,
     private val aapClient: AapClient,
-    private val behov: String
-) :
-    River.PacketListener {
+    private val behov: String,
+) : River.PacketListener {
     private companion object {
         private val sikkerlogg = LoggerFactory.getLogger("tjenestekall")
         private val log = LoggerFactory.getLogger(AapRiver::class.java)
     }
 
     init {
-        River(rapidsConnection).apply {
-            precondition { it.requireAll("@behov", listOf(behov)) }
-            precondition { it.forbid("@løsning") }
-            validate { it.requireKey("@id") }
-            validate { it.requireKey("fødselsnummer") }
-            validate { it.requireKey("vedtaksperiodeId") }
-            validate { it.require("$behov.periodeFom", JsonNode::asLocalDate) }
-            validate { it.require("$behov.periodeTom", JsonNode::asLocalDate) }
-        }.register(this)
+        River(rapidsConnection)
+            .apply {
+                precondition { it.requireAll("@behov", listOf(behov)) }
+                precondition { it.forbid("@løsning") }
+                validate { it.requireKey("@id") }
+                validate { it.requireKey("fødselsnummer") }
+                validate { it.requireKey("vedtaksperiodeId") }
+                validate { it.require("$behov.periodeFom", JsonNode::asLocalDate) }
+                validate { it.require("$behov.periodeTom", JsonNode::asLocalDate) }
+            }.register(this)
     }
 
-    override fun onError(problems: MessageProblems, context: MessageContext, metadata: MessageMetadata) {
+    override fun onError(
+        problems: MessageProblems,
+        context: MessageContext,
+        metadata: MessageMetadata,
+    ) {
         sikkerlogg.error("forstod ikke $behov:\n${problems.toExtendedReport()}")
     }
 
-    override fun onPacket(packet: JsonMessage, context: MessageContext, metadata: MessageMetadata, meterRegistry: MeterRegistry) {
-        val behovId = packet["@id"].asText()
-        val vedtaksperiodeId = packet["vedtaksperiodeId"].asText()
+    override fun onPacket(
+        packet: JsonMessage,
+        context: MessageContext,
+        metadata: MessageMetadata,
+        meterRegistry: MeterRegistry,
+    ) {
+        val behovId = packet["@id"].asString()
+        val vedtaksperiodeId = packet["vedtaksperiodeId"].asString()
         withMDC(
             mapOf(
                 "behovId" to behovId,
-                "vedtaksperiodeId" to vedtaksperiodeId
-            )
+                "vedtaksperiodeId" to vedtaksperiodeId,
+            ),
         ) {
             try {
                 info("løser behov {} for {}", keyValue("vedtaksperiodeId", vedtaksperiodeId))
@@ -61,43 +70,53 @@ internal class AapRiver(
         }
     }
 
-    private fun håndter(packet: JsonMessage, context: MessageContext) {
-        val fødselsnummer = packet["fødselsnummer"].asText()
-        val behovId = packet["@id"].asText()
+    private fun håndter(
+        packet: JsonMessage,
+        context: MessageContext,
+    ) {
+        val fødselsnummer = packet["fødselsnummer"].asString()
+        val behovId = packet["@id"].asString()
         val fom = packet["$behov.periodeFom"].asLocalDate()
         val tom = packet["$behov.periodeTom"].asLocalDate()
 
-        val json = runBlocking {
-            aapClient.hentMaksimum(fødselsnummer, fom, tom, behovId)
-        }
+        val json =
+            runBlocking {
+                aapClient.hentMaksimum(fødselsnummer, fom, tom, behovId)
+            }
 
         json.fold(
             onSuccess = { aapResponse: AapClient.AapResponse ->
                 sikkerlogg.info("Mottok svar fra AAP med følgende payload: $aapResponse")
-                packet["@løsning"] = mapOf(
-                    behov to mapOf(
-                        "utbetalingsperioder" to
-                            aapResponse.vedtak
-                                .flatMap { aapRettighet ->
-                                    aapRettighet.utbetaling
-                                        .filter { it.periode.fraOgMedDato != null }
-                                        .filter { it.belop != 0L}
-                                        .map { utbetaling ->
-                                            val fom = LocalDate.parse(utbetaling.periode.fraOgMedDato!!)
-                                            val tom = utbetaling.periode.tilOgMedDato?.let { LocalDate.parse(it) }?.takeIf { it >= fom } ?: LocalDate.now()
-                                            mapOf(
-                                                "fom" to fom,
-                                                "tom" to tom
-                                            )
-                                        }
-                                })
-                )
+                packet["@løsning"] =
+                    mapOf(
+                        behov to
+                            mapOf(
+                                "utbetalingsperioder" to
+                                    aapResponse.vedtak
+                                        .flatMap { aapRettighet ->
+                                            aapRettighet.utbetaling
+                                                .filter { it.periode.fraOgMedDato != null }
+                                                .filter { it.belop != 0L }
+                                                .map { utbetaling ->
+                                                    val fom = LocalDate.parse(utbetaling.periode.fraOgMedDato!!)
+                                                    val tom =
+                                                        utbetaling.periode.tilOgMedDato
+                                                            ?.let { LocalDate.parse(it) }
+                                                            ?.takeIf { it >= fom } ?: LocalDate.now()
+                                                    mapOf(
+                                                        "fom" to fom,
+                                                        "tom" to tom,
+                                                    )
+                                                }
+                                        },
+                            ),
+                    )
                 context.publish(packet.toJson())
                 log.info("Besvarte behov {}", behovId)
                 sikkerlogg.info(
                     "Besvarte behov {}:\n{}",
                     kv("id", behovId),
-                    packet.toJson()
+                    packet.toJson(),
                 )
             },
             onFailure = { t: Throwable ->
@@ -106,11 +125,14 @@ internal class AapRiver(
                     sikkerlogg.error("$message: {}", t, t)
                 }
                 throw t
-            }
+            },
         )
     }
 
-    private fun withMDC(context: Map<String, String>, block: () -> Unit) {
+    private fun withMDC(
+        context: Map<String, String>,
+        block: () -> Unit,
+    ) {
         val contextMap = MDC.getCopyOfContextMap() ?: emptyMap()
         try {
             MDC.setContextMap(contextMap + context)
@@ -120,12 +142,18 @@ internal class AapRiver(
         }
     }
 
-    private fun info(format: String, vararg args: Any) {
+    private fun info(
+        format: String,
+        vararg args: Any,
+    ) {
         log.info(format, *args)
         sikkerlogg.info(format, *args)
     }
 
-    private fun warn(format: String, vararg args: Any) {
+    private fun warn(
+        format: String,
+        vararg args: Any,
+    ) {
         log.warn(format, *args)
         sikkerlogg.warn(format, *args)
     }

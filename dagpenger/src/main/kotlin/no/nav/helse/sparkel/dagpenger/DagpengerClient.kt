@@ -14,21 +14,22 @@ import io.ktor.client.request.preparePost
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import kotlinx.coroutines.channels.ClosedReceiveChannelException
+import no.nav.helse.sparkel.retry
 import java.io.IOException
 import java.net.SocketTimeoutException
 import java.time.LocalDate
 import java.util.UUID
 import javax.net.ssl.SSLHandshakeException
-import kotlinx.coroutines.channels.ClosedReceiveChannelException
-import no.nav.helse.sparkel.retry
 
-private val retryableExceptions = arrayOf(
-    IOException::class,
-    ClosedReceiveChannelException::class,
-    SSLHandshakeException::class,
-    SocketTimeoutException::class,
-    ServerResponseException::class,
-)
+private val retryableExceptions =
+    arrayOf(
+        IOException::class,
+        ClosedReceiveChannelException::class,
+        SSLHandshakeException::class,
+        SocketTimeoutException::class,
+        ServerResponseException::class,
+    )
 
 class DagpengerClient(
     private val baseUrl: String,
@@ -36,25 +37,32 @@ class DagpengerClient(
     private val httpClient: HttpClient,
     private val scope: String,
 ) {
-    suspend fun hentBeregninger(personidentifikator: String, fom: LocalDate, tom: LocalDate, behovId: String): Result<List<DagpengerBeregningResponse>> {
+    suspend fun hentBeregninger(
+        personidentifikator: String,
+        fom: LocalDate,
+        tom: LocalDate,
+        behovId: String,
+    ): Result<List<DagpengerBeregningResponse>> {
         val callId = UUID.randomUUID()
         return retry("meldekort", legalExceptions = retryableExceptions) {
-            val response = httpClient.preparePost("$baseUrl/dagpenger/datadeling/v1/beregninger") {
-                expectSuccess = true
-                contentType(ContentType.Application.Json)
-                accept(ContentType.Application.Json)
-                val bearerToken = tokenClient.bearerToken(scope).getOrThrow()
-                bearerAuth(bearerToken.token)
-                setBody(
-                    mapOf(
-                        "personIdent" to personidentifikator,
-                        "fraOgMedDato" to fom.toString(),
-                        "tilOgMedDato" to tom.toString()
-                    )
-                )
-                header("nav-callid", "$callId")
-                header("x-correlation-id", behovId)
-            }.execute()
+            val response =
+                httpClient
+                    .preparePost("$baseUrl/dagpenger/datadeling/v1/beregninger") {
+                        expectSuccess = true
+                        contentType(ContentType.Application.Json)
+                        accept(ContentType.Application.Json)
+                        val bearerToken = tokenClient.bearerToken(scope).getOrThrow()
+                        bearerAuth(bearerToken.token)
+                        setBody(
+                            mapOf(
+                                "personIdent" to personidentifikator,
+                                "fraOgMedDato" to fom.toString(),
+                                "tilOgMedDato" to tom.toString(),
+                            ),
+                        )
+                        header("nav-callid", "$callId")
+                        header("x-correlation-id", behovId)
+                    }.execute()
 
             val utbetaltePerioder = response.body<List<DagpengerBeregningResponse>>().filter { it.utbetaltBeløp > 0 }
             Result.success(utbetaltePerioder)
@@ -65,6 +73,6 @@ class DagpengerClient(
     data class DagpengerBeregningResponse(
         val fraOgMed: String,
         val tilOgMed: String,
-        val utbetaltBeløp: Int
+        val utbetaltBeløp: Int,
     )
 }
