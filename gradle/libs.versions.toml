@@ -6,7 +6,7 @@ tbd-libs = "20260917.2152"
 ktor-client-cio = { module = "io.ktor:ktor-client-cio" }
 ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation" }
 ktor-serialization-jackson3 = { module = "io.ktor:ktor-serialization-jackson3" }
-rapids-and-rivers = "com.github.navikt:rapids-and-rivers:2026071513121784113927"
+rapids-and-rivers = "com.github.navikt:rapids-and-rivers:2026091610031789545782"
 tbd-libs-azure = { module = "com.github.navikt.tbd-libs:azure-token-client-default", version.ref = "tbd-libs" }
 tbd-libs-retry = { module = "com.github.navikt.tbd-libs:retry", version.ref = "tbd-libs" }
 
