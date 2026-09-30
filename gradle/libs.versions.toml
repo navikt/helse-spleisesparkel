@@ -1,6 +1,6 @@
 [versions]
 sasGradlePlugins = "20260930.1152"
-tbd-libs = "20260917.2152"
+tbd-libs = "20260930.1309"
 
 [libraries]
 ktor-client-cio = { module = "io.ktor:ktor-client-cio" }
