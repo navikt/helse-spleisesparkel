@@ -28,22 +28,16 @@ spec:
     limits:
       memory: 1Gi
     requests:
-      cpu: 5m
       memory: 320Mi
   replicas:
-    min: 1
-    max: 1
     cpuThresholdPercentage: 400
   strategy:
     rollingUpdate:
       maxSurge: 2
       maxUnavailable: 2
-  kafka:
-    pool: nav-dev
   azure:
     application:
       enabled: true
-      tenant: trygdeetaten.no
   prometheus:
     enabled: true
     path: /metrics
@@ -57,13 +51,8 @@ spec:
       value: tbd.rapid.v1
     - name: DAGPENGER_API_BASE_URL
       value: http://dp-datadeling.teamdagpenger
-    - name: ACCESS_TOKEN_SCOPE
-      value: api://dev-gcp.teamdagpenger.dp-datadeling/.default
   accessPolicy:
     outbound:
       rules:
         - application: logging
           namespace: nais-system
-        - application: dp-datadeling
-          namespace: teamdagpenger
-          cluster: dev-gcp

@@ -28,22 +28,16 @@ spec:
     limits:
       memory: 1Gi
     requests:
-      cpu: 50m
       memory: 320Mi
   replicas:
-    min: 4
-    max: 8
     cpuThresholdPercentage: 400
   strategy:
     rollingUpdate:
       maxSurge: 2
       maxUnavailable: 2
-  kafka:
-    pool: nav-prod
   azure:
     application:
       enabled: true
-      tenant: nav.no
   prometheus:
     enabled: true
     path: /metrics
@@ -57,13 +51,8 @@ spec:
       value: tbd.rapid.v1
     - name: AAP_API_BASE_URL
       value: http://api-intern.aap
-    - name: ACCESS_TOKEN_SCOPE
-      value: api://prod-gcp.aap.api-intern/.default
   accessPolicy:
     outbound:
       rules:
         - application: logging
           namespace: nais-system
-        - application: api-intern
-          namespace: aap
-          cluster: prod-gcp

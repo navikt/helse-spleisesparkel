@@ -1,0 +1,21 @@
+spec:
+  resources:
+    requests:
+      cpu: 50m
+  replicas:
+    min: 2
+    max: 8
+  kafka:
+    pool: nav-prod
+  azure:
+    application:
+      tenant: nav.no
+  env:
+    - name: ACCESS_TOKEN_SCOPE
+      value: api://prod-gcp.teamdagpenger.dp-datadeling/.default
+  accessPolicy:
+    outbound:
+      rules:
+        - application: dp-datadeling
+          namespace: teamdagpenger
+          cluster: prod-gcp

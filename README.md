@@ -12,13 +12,13 @@ Dette er for øvrig et skikkelig bra sted å skrive navnene på hver tjeneste og
 ## Legge til ny app
 
 Bygg og deploy styres av egne GitHub workflows per modul.
-Moduler med deploy-konfigurasjon i `config/[app]/` deployes til klustrene som har en egen yml-fil.
+Moduler med deploy-konfigurasjon i `.nais/` deployes med `nais apply` via `deploy-v2.yml`.
 
-Hver `config/[app]/[cluster].yml` er en komplett NAIS-manifestfil for det miljøet.
+Hver app har et grunnmanifest `.nais/sparkel-[app].yaml` med det som er likt i alle miljøer, og en mixin `.nais/sparkel-[app].[cluster].yaml` per kluster med det som er miljøspesifikt. Lister i mixinen legges til etter listene i grunnmanifestet.
 Navnet på appen settes eksplisitt i manifestet og følger konvensjonen `sparkel-[app]`, så navnet på modulen skal være uten prefikset.
 
 1. Gjør 'Legge til en ny gradle-modul'. Mappenavnet korresponderer med appnavnet
-2. Lag `config/[app]/[cluster].yml` som fullstendige manifests for de klustrene appen skal deployes til.
+2. Lag `.nais/sparkel-[app].yaml` og en `.nais/sparkel-[app].[cluster].yaml` for hvert kluster appen skal deployes til.
 3. Lag eller oppdater workflow i `.github/workflows/` for modulen.
 4. Push endringene
 
