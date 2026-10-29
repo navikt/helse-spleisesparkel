@@ -1,6 +1,6 @@
 [versions]
-sykepengerGradlePlugins = "20261028.1441"
-tbd-libs = "20261013.1613"
+sykepengerGradlePlugins = "20261029.1945"
+tbd-libs = "20261029.1843"
 
 [libraries]
 ktor-client-cio = { module = "io.ktor:ktor-client-cio" }
